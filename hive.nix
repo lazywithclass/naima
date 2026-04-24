@@ -18,6 +18,7 @@
       ./modules/git-clone.nix
       ./modules/claude-code.nix
       ./modules/llm-instructions.nix
+      ./modules/skills.nix
     ];
   };
 }

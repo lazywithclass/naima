@@ -11,23 +11,24 @@ echo "======================================================"
 echo "  Activate Claude Code session on $INSTANCE_IP"
 echo "======================================================"
 echo ""
-echo "  1. An SSH session will open on the instance."
+echo "  1. An SSH session will open on the instance (as user naima)."
 echo "  2. Run: claude"
-echo "  3. Follow the browser link to authenticate."
-echo "  4. Once logged in, type: exit"
+echo "  3. Follow the link to authenticate."
+echo "  4. Allow external imports when prompted."
+echo "  5. Once logged in, type: exit"
 echo ""
 echo "Press ENTER to connect."
 read -r _
 
 ssh -t -o StrictHostKeyChecking=accept-new root@"$INSTANCE_IP" \
-  'echo ""; echo "Run: claude"; echo "Authenticate, then type: exit"; echo ""; exec bash --login'
+  'cd /srv/project && sudo -iu naima bash -c "cd /srv/project; echo; echo \"Run: claude\"; echo \"Authenticate, allow external imports, then type: exit\"; echo; exec bash"'
 
 echo ""
 echo "Extracting and sealing session token..."
-SESSION_JSON=$($SSH cat /root/.claude/.credentials.json 2>/dev/null || true)
+SESSION_JSON=$($SSH cat /home/naima/.claude/.credentials.json 2>/dev/null || true)
 
 if [ -z "$SESSION_JSON" ]; then
-  echo "ERROR: ~/.claude/.credentials.json not found."
+  echo "ERROR: /home/naima/.claude/.credentials.json not found."
   echo "  Did you complete the login? Re-run this script."
   exit 1
 fi

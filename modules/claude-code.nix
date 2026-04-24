@@ -4,7 +4,14 @@
 
 let
   credStore = "/etc/claude-credentials";
+  homeDir   = "/home/naima";
 in {
+
+  users.users.naima = {
+    isNormalUser = true;
+    home         = homeDir;
+    description  = "Claude Code service user";
+  };
 
   environment.systemPackages = [ pkgs.claude-code ];
 
@@ -28,6 +35,8 @@ in {
 
     serviceConfig = {
       Type       = "simple";
+      User       = "naima";
+      Group      = "users";
       Restart    = "on-failure";
       RestartSec = "30s";
 
@@ -38,6 +47,12 @@ in {
       ProtectSystem           = "full";
       PrivateTmp              = true;
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
+
+      ExecStartPre = "+${pkgs.writeShellScript "naima-pre" ''
+        ${pkgs.coreutils}/bin/mkdir -p /srv/project
+        ${pkgs.coreutils}/bin/chown -R naima:users /srv/project
+      ''}";
+      WorkingDirectory       = "/srv/project";
 
       ExecStart = pkgs.writeShellScript "naima-start" ''
         set -euo pipefail
@@ -50,21 +65,18 @@ in {
           exit 0
         fi
 
-        mkdir -p /root/.claude
-        echo "$TOKEN" > /root/.claude/.credentials.json
-        chmod 600 /root/.claude/.credentials.json
-
-        mkdir -p /srv/project
-        cd /srv/project
+        mkdir -p ${homeDir}/.claude
+        echo "$TOKEN" > ${homeDir}/.claude/.credentials.json
+        chmod 600 ${homeDir}/.claude/.credentials.json
 
         echo "Starting Claude Code remote-control..."
         echo "Session will appear at: https://claude.ai/code"
 
-        exec ${pkgs.claude-code}/bin/claude remote-control
+        (printf 'y\n'; sleep infinity) | ${pkgs.claude-code}/bin/claude remote-control --permission-mode=bypassPermissions --spawn=same-dir
       '';
 
       ExecStopPost = pkgs.writeShellScript "naima-stop" ''
-        rm -f /root/.claude/.credentials.json
+        rm -f ${homeDir}/.claude/.credentials.json
       '';
     };
   };
